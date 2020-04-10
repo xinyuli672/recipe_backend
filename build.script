@@ -1,0 +1,23 @@
+curl -d "{\"content\":\"Build ${BUILD_TAG} started for commit ${GIT_COMMIT}\"}" -H "Content-Type: application/json" -X POST https://discordapp.com/api/webhooks/501897940885831680/P44E89ircGI7s77NjOyPuimNtFGYefch8CvIqIgvmh_kO6fM0NpixcSMdIRqWAOvrkL2
+echo "Creating VENV and installing requirements on build server"
+rm -rf /tmp/venv
+python3 -m venv /tmp/venv
+#. /tmp/venv/bin/python3
+/tmp/venv/bin/pip3 install pip --upgrade
+/tmp/venv/bin/pip3 install -r requirements.txt
+# Test things here
+
+
+tar -czf recipe-backend.tar.gz *
+echo "Transferring to prod server"
+mv recipe-backend.tar.gz /tmp/
+
+rm -rf ~/recipe-backend/*
+mv /tmp/recipe-backend.tar.gz ~/recipe-backend
+cd ~/recipe-backend; tar -zxf recipe-backend.tar.gz
+
+pkill -f "/tmp/venv/bin/python3" || true
+ssh jenkins@127.0.0.1 'cd recipe-backend && nohup /tmp/venv/bin/python3 main.py >stdout.log 2>stderr.log < /dev/null &'
+#forever --sourceDir /home/jenkins/recipe-backend start -c "/tmp/venv/bin/python3 -u /home/jenkins/recipe-backend/main.py" ./
+
+curl -d '{"content":"Build complete. Example route: http://104.248.220.214:3000/recipe"}' -H "Content-Type: application/json" -X POST https://discordapp.com/api/webhooks/501897940885831680/P44E89ircGI7s77NjOyPuimNtFGYefch8CvIqIgvmh_kO6fM0NpixcSMdIRqWAOvrkL2
